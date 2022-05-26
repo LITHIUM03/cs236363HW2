@@ -4,7 +4,7 @@ from Utility.Exceptions import DatabaseException
 from Utility.DBConnector import ResultSet
 from psycopg2 import sql
 
-
+#Test
 def dropTable() -> None:
     conn = None
     try:
