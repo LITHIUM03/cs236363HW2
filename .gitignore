@@ -1,4 +1,5 @@
 *.pdf
+*__pycache__*
 hw2_spring2022/Utility/__pycache__/*
 hw2_spring2022/Utility/__pycache__/DBConnector.cpython-310.pyc
 hw2_spring2022/Utility/__pycache__/Exceptions.cpython-310.pyc

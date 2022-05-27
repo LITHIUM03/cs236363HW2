@@ -7,6 +7,7 @@ class AbstractTest(unittest.TestCase):
     def setUp(self) -> None:
         Solution.createTables()
 
+
     # after each test, tearDown is executed
     def tearDown(self) -> None:
         Solution.dropTables()

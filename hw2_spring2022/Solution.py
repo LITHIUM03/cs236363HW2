@@ -12,11 +12,14 @@ def createTables():
     conn = None
     try:
         conn = Connector.DBConnector()
-        conn.execute(" CREATE TABLE \
-        File(id INTEGER PRIMARY KEY NOT NULL, type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL)",
-        "CREATE TABLE\
-        Disk(id INTEGER PRIMARY KEY NOT NULL,company TEXT NOT NULL,speed INTEGER NOT NULL, free_space INTEGER NOT NULL,\
-        cost INTEGER NOT NULL)","CREATE TABLE RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, company TEXT NOT NULL)")
+        conn.execute(" BEGIN;\
+                     CREATE TABLE IF NOT EXISTS File(id INTEGER PRIMARY KEY NOT NULL, \
+                     type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL);\
+                     CREATE TABLE IF NOT EXISTS Disk(id INTEGER PRIMARY KEY NOT NULL,\
+                     company TEXT NOT NULL,speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL);\
+                     CREATE TABLE IF NOT EXISTS  RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, \
+                     company TEXT NOT NULL);\
+                     COMMIT;")
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -40,7 +43,18 @@ def clearTables():
 
 
 def dropTables():
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute('BEGIN;\
+                     DROP TABLE IF EXISTS File;\
+                     DROP TABLE IF EXISTS Disk;\
+                     DROP TABLE IF EXISTS RAM;\
+                     COMMIT;')
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
 
 
 def addFile(file: File) -> Status:
