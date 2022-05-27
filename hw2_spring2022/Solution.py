@@ -9,7 +9,30 @@ from psycopg2 import sql
 
 
 def createTables():
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute(" CREATE TABLE \
+        File(id INTEGER PRIMARY KEY NOT NULL, type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL)",
+        "CREATE TABLE\
+        Disk(id INTEGER PRIMARY KEY NOT NULL,company TEXT NOT NULL,speed INTEGER NOT NULL, free_space INTEGER NOT NULL,\
+        cost INTEGER NOT NULL)","CREATE TABLE RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, company TEXT NOT NULL)")
+        conn.commit()
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        # will happen any way after try termination or exception handling
+        conn.close()
 
 
 def clearTables():

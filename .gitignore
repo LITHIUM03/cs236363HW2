@@ -4,4 +4,10 @@ hw2_spring2022/Utility/__pycache__/DBConnector.cpython-310.pyc
 hw2_spring2022/Utility/__pycache__/Exceptions.cpython-310.pyc
 hw2_spring2022/Utility/__pycache__/Status.cpython-310.pyc
 *.ini
+<<<<<<< HEAD
 *.xml
+=======
+*.iml
+*.xml
+hw2_spring2022/Utility/__pycache__/
+>>>>>>> 1b4cd2c (syncingg with remote)

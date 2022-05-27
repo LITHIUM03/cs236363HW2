@@ -36,6 +36,7 @@ def dropTable() -> None:
 def createTable() -> None:
     conn = None
     try:
+        print("hi")
         conn = Connector.DBConnector()
         conn.execute("CREATE TABLE Users(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
         conn.commit()
