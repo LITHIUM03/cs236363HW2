@@ -70,7 +70,31 @@ def deleteFile(file: File) -> Status:
 
 
 def addDisk(disk: Disk) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK;
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("INSERT INTO Disk(id, company, speed, free_space, cost)\
+         VALUES({id}, {company}, {speed}, {free_space}, {cost})").format(id=sql.Literal(disk.getDiskID()),
+                                                                         company=sql.Literal(disk.getCompany()),
+                                                                         speed=sql.Literal(disk.getSpeed()),
+                                                                         free_space=sql.Literal(disk.getFreeSpace()),
+                                                                         cost=sql.Literal(disk.getCost()))
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+    except DatabaseException.CHECK_VIOLATION as e:
+        res = Status.BAD_PARAMS
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        res = Status.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        res = Status.ALREADY_EXISTS
+    except Exception as e:
+        res = Status.ERROR
+    finally:
+        conn.close()
+    return res
 
 
 def getDiskByID(diskID: int) -> Disk:
@@ -78,7 +102,25 @@ def getDiskByID(diskID: int) -> Disk:
 
 
 def deleteDisk(diskID: int) -> Status:
-    return Status.OK
+    conn = None
+    rows_effected = 0
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("DELETE FROM Disk WHERE id={0}").format(sql.Literal(diskID))
+        rows_effected, _ = conn.execute(query)
+        if rows_effected == 0:
+            raise DatabaseException.CHECK_VIOLATION('')
+        conn.commit()
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+    except DatabaseException.CHECK_VIOLATION as e:
+        res = Status.NOT_EXISTS
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
+    return res
 
 
 def addRAM(ram: RAM) -> Status:
