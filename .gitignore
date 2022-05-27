@@ -9,3 +9,4 @@ hw2_spring2022/Utility/__pycache__/Status.cpython-310.pyc
 *.xml
 hw2_spring2022/Utility/__pycache__/
 *.idea*
+database.ini
