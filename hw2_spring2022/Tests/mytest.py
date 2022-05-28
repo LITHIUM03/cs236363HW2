@@ -14,12 +14,18 @@ from Business.Disk import Disk
 
 class Test(AbstractTest):
     def test_Create(self) -> None:
-        #Disk test
+        pass
+
+    def test_addDisk(self) -> None:
         self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 10, 10, 10)), "Should work")
         self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "ASUS", 2, 5, 20)), "Should work")
         disk = Solution.getDiskByID(1)
         disk.__str__()
         self.assertEqual(Status.OK, Solution.deleteDisk(1), "Should work")
+        self.assertEqual(Status.OK, Solution.deleteDisk(2), "Should through exception")
+
+    def test_addfile(self) -> None:
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "wav", 10)), "Should work")
         self.assertEqual(Status.NOT_EXISTS, Solution.deleteDisk(3), "Should through exception")
         self.assertEqual(Status.ALREADY_EXISTS, Solution.addDisk(Disk(2, "ASUS", 10, 10, 10)), "Should through exception")
 
@@ -39,4 +45,3 @@ class Test(AbstractTest):
 if __name__ == '__main__':
     Solution.dropTables()
     unittest.main(verbosity=2, exit=False)
-

@@ -6,7 +6,6 @@ from Business.File import File
 from Business.RAM import RAM
 from Business.Disk import Disk
 from psycopg2 import sql
-table_mapping={"disk":Disk,"ram":RAM,"file":File}
 
 
 def delete(ID,table_type):
@@ -31,6 +30,9 @@ def delete(ID,table_type):
     finally:
         conn.close()
         return res
+
+# TODO ENFORCE id TO BE STRICTLY POSITIVE.
+
 
 def createTables():
     conn = None
@@ -63,7 +65,18 @@ def createTables():
 
 
 def clearTables():
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute('BEGIN;\
+                     DELETE IF EXISTS FROM File;\
+                     DELETE IF EXISTS FROM Disk;\
+                     DELETE IF EXISTS FROM RAM;\
+                     COMMIT;')
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
 
 
 def dropTables():
@@ -82,11 +95,70 @@ def dropTables():
 
 
 def addFile(file: File) -> Status:
-    return Status.OK
+    res = None
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+
+        query = sql.SQL("INSERT INTO File(id, type, disk_size_needed) VALUES({id}, {type}, {disk_size_needed})"). \
+            format(id=sql.Literal(file.getFileID()), type=sql.Literal(file.getType()), \
+                   disk_size_needed=sql.Literal(file.getSize()))
+        print("this is query:")
+        # query = "INSERT INTO public.File(id, type, disk_size_needed) VALUES(12, 'wav', 145)"
+        '''
+        
+         query = sql.SQL("INSERT INTO Users(id, name) VALUES({id}, {username})").format(id=sql.Literal(ID),
+                                                                                       username=sql.Literal(name))
+        '''
+        print(query)
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+        res = Status.OK
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        res = Status.BAD_PARAMS
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        res = Status.BAD_PARAMS
+        print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        res = Status.ALREADY_EXISTS
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        print("finally!")
+        conn.close()
+        return res
 
 
 def getFileByID(fileID: int) -> File:
-    return File()
+    rows_effected, res = 0, Connector.ResultSet()
+    # ResultSet()
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT * FROM Files WHERE id={_id}").format(_id=fileID)
+        rows_effected, res = conn.execute(query)
+        if res.isEmpty:
+            res = File.badFile()  # readability
+        else:
+            assert (res.size() == 1)
+            res_dict = res.__getRow()
+            print(type(res_dict))
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
+        assert (isinstance(res, type(File())))
+        return res
 
 
 def deleteFile(file: File) -> Status:
