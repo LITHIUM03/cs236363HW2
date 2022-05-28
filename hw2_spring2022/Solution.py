@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 import Utility.DBConnector as Connector
 from Utility.Status import Status
 from Utility.Exceptions import DatabaseException
@@ -6,19 +6,18 @@ from Business.File import File
 from Business.RAM import RAM
 from Business.Disk import Disk
 from psycopg2 import sql
-table_mapping={"disk":Disk,"ram":RAM,"file":File}
+
+table_mapping = {"disk": Disk, "ram": RAM, "file": File}
 
 
-<<<<<<< HEAD
-# TODO ENFORCE id TO BE STRICTLY POSITIVE.
-
-=======
-def delete(ID,table_type):
+def DeletediskORram(ID, table_name):
+    """this function is good only for deleting ram or disk, since for those deleting an id that does not exist is
+    illegal,and should throw. for file-shouldn't throw!"""
     conn = None
     res = Status.OK
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("DELETE FROM " + table_type + " WHERE id={0}").format(sql.Literal(ID))
+        query = sql.SQL("DELETE FROM " + table_name + " WHERE id={0}").format(sql.Literal(ID))
         rows_effected, _ = conn.execute(query)
         if not rows_effected:
             raise DatabaseException.CHECK_VIOLATION('')
@@ -35,7 +34,49 @@ def delete(ID,table_type):
     finally:
         conn.close()
         return res
->>>>>>> Tzahi
+
+
+def get(ID, table_name):
+    """this function is good for all three tables."""
+    #        query = sql.SQL("SELECT * FROM Files WHERE id={_id}").format(_id=fileID)
+
+    conn = None
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT * FROM " + table_name + " WHERE id={0}").format(sql.Literal(ID))
+        rows_effected, result = conn.execute(query)
+        if table_name == "Disk":
+            if rows_effected:
+                assert (rows_effected == 1)
+                diskID, company, speed, free_space, cost = result.rows[0]
+                result = Disk(diskID, company, speed, free_space, cost)
+            else:
+                result = Disk.badDisk()
+        elif table_name == "File":
+            if rows_effected:
+                assert (rows_effected == 1)
+                fileID, filetype, disk_size_needed = result.rows[0]
+                result = File(fileID, filetype, disk_size_needed)
+            else:
+                result = File.badFile()
+        elif table_name == "RAM":
+            if rows_effected:
+                assert (rows_effected == 1)
+                ramID, size, company = result.rows[0]
+                result = RAM(ramID, size, company)
+
+            else:
+                result = RAM.badRAM()
+        else:
+            assert ()
+        conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()
+        return result
+
 
 def createTables():
     conn = None
@@ -43,11 +84,11 @@ def createTables():
         conn = Connector.DBConnector()
         conn.execute(" BEGIN;\
                      CREATE TABLE IF NOT EXISTS File(id INTEGER PRIMARY KEY NOT NULL, \
-                     type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL);\
-                     CREATE TABLE IF NOT EXISTS Disk(id INTEGER PRIMARY KEY NOT NULL,\
-                     company TEXT NOT NULL,speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL);\
-                     CREATE TABLE IF NOT EXISTS  RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, \
-                     company TEXT NOT NULL);\
+                        type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL,CHECK (id>=1));\
+                     CREATE TABLE IF NOT EXISTS Disk(id INTEGER PRIMARY KEY NOT NULL, company TEXT NOT NULL,\
+                        speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL,CHECK (id>=1));\
+                     CREATE TABLE IF NOT EXISTS RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, \
+                        company TEXT NOT NULL,CHECK (id>=1));\
                      COMMIT;")
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
@@ -106,14 +147,6 @@ def addFile(file: File) -> Status:
         query = sql.SQL("INSERT INTO File(id, type, disk_size_needed) VALUES({id}, {type}, {disk_size_needed})"). \
             format(id=sql.Literal(file.getFileID()), type=sql.Literal(file.getType()), \
                    disk_size_needed=sql.Literal(file.getSize()))
-        print("this is query:")
-        # query = "INSERT INTO public.File(id, type, disk_size_needed) VALUES(12, 'wav', 145)"
-        '''
-        
-         query = sql.SQL("INSERT INTO Users(id, name) VALUES({id}, {username})").format(id=sql.Literal(ID),
-                                                                                       username=sql.Literal(name))
-        '''
-        print(query)
         rows_effected, _ = conn.execute(query)
         conn.commit()
         res = Status.OK
@@ -134,38 +167,32 @@ def addFile(file: File) -> Status:
     except Exception as e:
         print(e)
     finally:
-        print("finally!")
         conn.close()
         return res
 
 
 def getFileByID(fileID: int) -> File:
-    rows_effected, res = 0, Connector.ResultSet()
-    # ResultSet()
+    result = get(fileID, "File")
+    return result
+
+
+def deleteFile(file: File) -> Status:
     conn = None
+    res = Status.OK
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("SELECT * FROM Files WHERE id={_id}").format(_id=fileID)
-        rows_effected, res = conn.execute(query)
-        if res.isEmpty:
-            res = File.badFile()  # readability
-        else:
-            assert (res.size() == 1)
-            res_dict = res.__getRow()
-            print(type(res_dict))
+        query = sql.SQL("DELETE FROM File" + " WHERE id={0}").format(sql.Literal(file.getFileID()))
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
         print(e)
     except Exception as e:
+        res = Status.ERROR
         print(e)
     finally:
         conn.close()
-        assert (isinstance(res, type(File())))
         return res
-
-
-def deleteFile(file: File) -> Status:
-    return Status.OK
 
 
 def addDisk(disk: Disk) -> Status:
@@ -201,26 +228,12 @@ def addDisk(disk: Disk) -> Status:
 
 
 def getDiskByID(diskID: int) -> Disk:
-    conn = None
-    rows_effected, result = 0, Connector.ResultSet()
-    try:
-        conn = Connector.DBConnector()
-        rows_effected, result = conn.execute(sql.SQL("SELECT * FROM Disk WHERE id={0}").format(sql.Literal(diskID)))
-        if rows_effected:
-            diskID, company, speed, free_space, cost=result.rows[0]
-            result=Disk(diskID, company, speed, free_space, cost)
-        else:
-            result= Disk.badDisk()
-        conn.commit()
-    except Exception as e:
-        print(e)
-    finally:
-        conn.close()
-        return result
+    result = get(diskID, "Disk")
+    return result
 
 
 def deleteDisk(diskID: int) -> Status:
-    result=delete(diskID,table_type="disk")
+    result = DeletediskORram(diskID, table_name="disk")
     return result
 
 
@@ -230,9 +243,10 @@ def addRAM(ram: RAM) -> Status:
 
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("INSERT INTO RAM(id, company,size) VALUES({ramID}, {company}, {size})").format(ramID=sql.Literal(ram.getRamID()),
-                                                                         company=sql.Literal(ram.getCompany()),
-                                                                         size=sql.Literal(ram.getSize()))
+        query = sql.SQL("INSERT INTO RAM(id, company,size) VALUES({ramID}, {company}, {size})").format(
+            ramID=sql.Literal(ram.getRamID()),
+            company=sql.Literal(ram.getCompany()),
+            size=sql.Literal(ram.getSize()))
         rows_effected, _ = conn.execute(query)
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
@@ -253,27 +267,14 @@ def addRAM(ram: RAM) -> Status:
         conn.close()
         return res
 
+
 def getRAMByID(ramID: int) -> RAM:
-    conn = None
-    rows_effected, result = 0, Connector.ResultSet()
-    try:
-        conn = Connector.DBConnector()
-        rows_effected, result = conn.execute(sql.SQL("SELECT * FROM RAM WHERE id={0}").format(sql.Literal(ramID)))
-        if rows_effected:
-            ramID, company, size=result.rows[0]
-            result=RAM(ramID, company, size)
-        else:
-            result= RAM.badRAM()
-        conn.commit()
-    except Exception as e:
-        print(e)
-    finally:
-        conn.close()
-        return result
+    result = get(ramID, "RAM")
+    return result
 
 
 def deleteRAM(ramID: int) -> Status:
-    result=delete(ramID,table_type="ram")
+    result = DeletediskORram(ramID, table_name="ram")
     return result
 
 

@@ -6,6 +6,13 @@ class Disk:
         self.__free_space = free_space
         self.__cost = cost
 
+    def __eq__(self, other):
+        return self.__diskID == other.__diskID and \
+               self.__company == other.__company and \
+               self.__free_space == other.__free_space and \
+               self.__speed == other.__speed and \
+               self.__cost == other.__cost
+
     def getDiskID(self):
         return self.__diskID
 

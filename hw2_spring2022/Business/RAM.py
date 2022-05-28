@@ -4,6 +4,11 @@ class RAM:
         self.__company = company
         self.__size = size
 
+    def __eq__(self, other):
+        return self.__ramID == other.__ramID and \
+               self.__company == other.__company and \
+               self.__size == other.__size
+
     def getRamID(self):
         return self.__ramID
 
