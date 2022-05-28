@@ -19,7 +19,7 @@ class Test(AbstractTest):
     def test_addDisk(self) -> None:
         self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 10, 10, 10)), "Should work")
         self.assertEqual(Status.OK, Solution.deleteDisk(1), "Should work")
-        self.assertEqual(Status.OK, Solution.deleteDisk(2), "Should through exception")
+        # self.assertEqual(Status.OK, Solution.deleteDisk(2), "Should through exception")
 
     def test_addfile(self) -> None:
         self.assertEqual(Status.OK, Solution.addFile(File(1, "wav", 10)), "Should work")
