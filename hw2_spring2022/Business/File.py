@@ -4,6 +4,9 @@ class File:
         self.__type = type
         self.__size = size
 
+    def __eq__(self, other):
+        return self.__type == other.__type and self.__fileID == other.__fileID and self.__size == other.__size
+
     def getFileID(self):
         return self.__fileID
 
