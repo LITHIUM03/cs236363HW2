@@ -63,6 +63,70 @@ class Test(AbstractTest):
         self.assertEqual(Status.ALREADY_EXISTS, Solution.addRAM(RAM(2, "ASUS", 10)), "Should throw exception")
         pass
 
+    def test_add_file_to_disk(self) -> None:
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "DELL", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.NOT_EXISTS, Solution.addFileToDisk(File(2, "DELL", 9), 1),
+                         "Should work")
+        self.assertEqual(Status.NOT_EXISTS, Solution.addFileToDisk(File(1, "DELL", 9), 2),
+                         "Should work")
+        self.assertEqual(Status.ALREADY_EXISTS, Solution.addFileToDisk(File(1, "DELL", 9), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.BAD_PARAMS, Solution.addFileToDisk(File(2, "DELL", 50), 1),
+                         "Should work")
+    pass
+
+    def test_remove_file_from_disk(self) -> None:
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
+                     "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "DELL", 11), 1),
+                     "Should work")
+        self.assertEqual(Status.OK, Solution.removeFileFromDisk(File(1, "DELL", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.removeFileFromDisk(File(2, "DELL", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.removeFileFromDisk(File(1, "DELL", 11), 2),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "DELL", 11), 2),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.removeFileFromDisk(File(1, "DELL", 11), 1),
+                         "Should work")
+    pass
+
+    def test_avg_file_size_on_disk(self) -> None:
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "ASUS", 5)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "WD", 8)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "DELL", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "ASUS", 5), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "WD", 8), 1),
+                         "Should work")
+        self.assertEqual(8, Solution.averageFileSizeOnDisk(1),
+                         "Should work")
+        self.assertEqual(0, Solution.averageFileSizeOnDisk(2),
+                         "ID does not exists")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "DELL", 5, 50, 20)),
+                         "Should work")
+        self.assertEqual(0, Solution.averageFileSizeOnDisk(2),
+                         "Division by zero")
+    pass
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':

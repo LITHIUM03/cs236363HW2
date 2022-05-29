@@ -87,6 +87,11 @@ def createTables():
                         speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL,CHECK (id>=1));\
                      CREATE TABLE IF NOT EXISTS RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, \
                         company TEXT NOT NULL,CHECK (id>=1));\
+                     CREATE TABLE IF NOT EXISTS FileToDisk(did INTEGER NOT NULL,\
+                        fid INTEGER NOT NULL, delta INTEGER NOT NULL,\
+                        CHECK (delta>=0),\
+                        FOREIGN KEY (did) REFERENCES Disk(id) ON DELETE CASCADE,\
+                        FOREIGN KEY (fid) REFERENCES File(id) ON DELETE CASCADE, PRIMARY KEY (did, fid));\
                      COMMIT;")
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
@@ -111,6 +116,7 @@ def clearTables():
     try:
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
+                     DELETE IF EXISTS FROM FileToDisk;\
                      DELETE IF EXISTS FROM File;\
                      DELETE IF EXISTS FROM Disk;\
                      DELETE IF EXISTS FROM RAM;\
@@ -126,6 +132,7 @@ def dropTables():
     try:
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
+                     DROP TABLE IF EXISTS FileToDisk;\
                      DROP TABLE IF EXISTS File;\
                      DROP TABLE IF EXISTS Disk;\
                      DROP TABLE IF EXISTS RAM;\
@@ -281,11 +288,67 @@ def addDiskAndFile(disk: Disk, file: File) -> Status:
 
 
 def addFileToDisk(file: File, diskID: int) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK
+    """insert into filetodisk(file,disk) \
+    (select file.id , disk.id, disk.free_space - file.size as delta from file , disk where delta >= 0 and disk.id = diskID and file.id={fid}) 
+    """
+    """
+    
+    """
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("BEGIN; \
+                                UPDATE Disk SET free_space = free_space - {fsize} WHERE id={did}; \
+                                INSERT INTO FileToDisk(did, fid, delta) \
+                                VALUES ({did}, {fid}, (SELECT free_space FROM Disk WHERE id={did}));\
+                        END;").format(did=sql.Literal(diskID), fid=sql.Literal(file.getFileID()), fsize=sql.Literal(file.getSize()))
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        res = Status.ALREADY_EXISTS
+        conn.rollback()
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        res = Status.NOT_EXISTS
+        conn.rollback()
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        res = Status.NOT_EXISTS
+        conn.rollback()
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        res = Status.BAD_PARAMS
+        conn.rollback()
+        print(e)
+    except Exception as e:
+        res = Status.ERROR
+        conn.rollback()
+        print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def removeFileFromDisk(file: File, diskID: int) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("BEGIN; \
+                        UPDATE Disk SET free_space = free_space + {fsize} WHERE id={did}\
+                        AND (SELECT COUNT(*) FROM FileToDisk WHERE did={did} AND fid={fid})>=1;\
+                        DELETE FROM FileToDisk WHERE did={did} AND fid={fid};\
+                        END;").format(did=sql.Literal(diskID), fid=sql.Literal(file.getFileID()), fsize=sql.Literal(file.getSize()))
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+    except Exception as e:
+        res = Status.ERROR
+        conn.rollback()
+        print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def addRAMToDisk(ramID: int, diskID: int) -> Status:
@@ -297,7 +360,25 @@ def removeRAMFromDisk(ramID: int, diskID: int) -> Status:
 
 
 def averageFileSizeOnDisk(diskID: int) -> float:
-    return 0
+    conn = None
+    res = 0
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("Select sum(file.disk_size_needed)/count(file.id) as avg_size from Disk\
+                         inner join filetodisk as ftd on disk.id=ftd.did\
+                         inner join file on ftd.fid=file.id\
+                         WHERE {did} IN (Select did from Disk) and disk.id={did}\
+                         group by disk.id").format(did=sql.Literal(diskID))
+        rows_effected, result = conn.execute(query)
+        if rows_effected:
+            res = result.rows[0][0]
+        conn.commit()
+    except Exception as e:
+        res = -1
+        print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def diskTotalRAM(diskID: int) -> int:
