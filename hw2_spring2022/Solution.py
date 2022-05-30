@@ -361,10 +361,10 @@ def removeRAMFromDisk(ramID: int, diskID: int) -> Status:
 
 def averageFileSizeOnDisk(diskID: int) -> float:
     conn = None
-    res = 0
+    res = 0.0
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("Select sum(file.disk_size_needed)/count(file.id) as avg_size from Disk\
+        query = sql.SQL("Select CAST(sum(file.disk_size_needed) as float)/CAST(count(file.id) as float) as avg_size from Disk\
                          inner join filetodisk as ftd on disk.id=ftd.did\
                          inner join file on ftd.fid=file.id\
                          WHERE {did} IN (Select did from Disk) and disk.id={did}\
@@ -374,7 +374,7 @@ def averageFileSizeOnDisk(diskID: int) -> float:
             res = result.rows[0][0]
         conn.commit()
     except Exception as e:
-        res = -1
+        res = -1.0
         print(e)
     finally:
         conn.close()

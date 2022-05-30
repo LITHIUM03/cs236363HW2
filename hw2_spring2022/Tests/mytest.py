@@ -106,7 +106,7 @@ class Test(AbstractTest):
     def test_avg_file_size_on_disk(self) -> None:
         self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
                          "Should work")
-        self.assertEqual(Status.OK, Solution.addFile(File(2, "ASUS", 5)),
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "ASUS", 6)),
                          "Should work")
         self.assertEqual(Status.OK, Solution.addFile(File(3, "WD", 8)),
                          "Should work")
@@ -114,11 +114,11 @@ class Test(AbstractTest):
                          "Should work")
         self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "DELL", 11), 1),
                          "Should work")
-        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "ASUS", 5), 1),
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "ASUS", 6), 1),
                          "Should work")
         self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "WD", 8), 1),
                          "Should work")
-        self.assertEqual(8, Solution.averageFileSizeOnDisk(1),
+        self.assertEqual(8.333333333333334, Solution.averageFileSizeOnDisk(1),
                          "Should work")
         self.assertEqual(0, Solution.averageFileSizeOnDisk(2),
                          "ID does not exists")
