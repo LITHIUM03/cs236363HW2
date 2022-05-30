@@ -315,6 +315,43 @@ class Test(AbstractTest):
                          "File type not exists")
     pass
 
+    def test_get_conflicts(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 500, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "WD", 10, 500, 80)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "PDF", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "JPG", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "PDF", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "SVG", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "PDF", 90)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "JPG", 55), 1),
+                         "Should work")
+        self.assertEqual([], Solution.getConflictingDisks(),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "PDF", 18), 2),
+                         "Should work")
+        self.assertEqual([], Solution.getConflictingDisks(),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "PDF", 18), 1),
+                         "Should work")
+        self.assertEqual([1, 2], Solution.getConflictingDisks(),
+                         "Check file id 3 in both disk 1 and 2")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(3, "WD", 10, 500, 80)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "PDF", 18), 3),
+                         "Should work")
+        self.assertEqual([1, 2, 3], Solution.getConflictingDisks(),
+                        "Check file id 3 in both disks 1 and 2, and file id 2 in both disks 1 and 3")
+    pass
+
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':
     unittest.main(verbosity=4, exit=False)

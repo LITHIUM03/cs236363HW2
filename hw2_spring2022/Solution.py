@@ -575,6 +575,24 @@ def isCompanyExclusive(diskID: int) -> bool:
 
 
 def getConflictingDisks() -> List[int]:
+    conn = None
+    res = []
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT DISTINCT fdt1.did \
+                             FROM fileToDisk as fdt1 inner join fileToDisk as fdt2 on fdt1.fid = fdt2.fid\
+                             WHERE fdt1.did != fdt2.did \
+                             ORDER BY fdt1.did ASC \
+                             FETCH FIRST 5 ROWS ONLY")
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+        res = [id_tuple[0] for id_tuple in result.rows]
+    except Exception as e:
+        res = []
+        print(e)
+    finally:
+        conn.close()
+        return res
     return []
 
 
