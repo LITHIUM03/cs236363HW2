@@ -128,7 +128,7 @@ class Test(AbstractTest):
                          "Division by zero")
     pass
 
-    def test_avg_file_size_on_disk(self) -> None:
+    def test_get_file_can_be_added(self) -> None:
         self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
                          "Should work")
         self.assertEqual([], Solution.getFilesCanBeAddedToDisk(1),
@@ -155,6 +155,37 @@ class Test(AbstractTest):
                          "Check return only 5 items list")
         self.assertEqual([], Solution.getFilesCanBeAddedToDisk(2),
                          "DiskId not exists")
+    pass
+
+    def test_get_cost_for_type(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 500, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "WD", 10, 500, 80)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "PDF", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "JPG", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "PDF", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "SVG", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "PDF", 90)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "JPG", 55), 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "PDF", 18), 2),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(4, "SVG", 22), 2),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(5, "PDF", 90), 1),
+                         "Should work")
+        self.assertEqual(3460, Solution.getCostForType("PDF"),
+                         "Should work")
+        self.assertEqual(0, Solution.getCostForType("PNG"),
+                         "File type not exists")
     pass
 
 # *** DO NOT RUN EACH TEST MANUALLY ***

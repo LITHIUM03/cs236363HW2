@@ -380,7 +380,23 @@ def diskTotalRAM(diskID: int) -> int:
 
 
 def getCostForType(type: str) -> int:
-    return 0
+    conn = None
+    res = 0
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT SUM(disk_size_needed * cost) as money_cost \
+                        FROM file inner join filetodisk as ftd on file.id = ftd.fid inner join disk on ftd.did = disk.id \
+                        WHERE type = {type}").format(type=sql.Literal(type))
+        rows_effected, result = conn.execute(query)
+        if result.rows[0][0]:
+            res = result.rows[0][0]
+        conn.commit()
+    except Exception as e:
+        res = -1
+        print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def getFilesCanBeAddedToDisk(diskID: int) -> List[int]:
