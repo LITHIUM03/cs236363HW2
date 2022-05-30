@@ -114,28 +114,20 @@ def createTables():
         # will happen any way after try termination or exception handling
         conn.close()
 
-
-"""DELETE IF EXISTS FROM RAM_and_Disks;"""
-
-
 def clearTables():
     conn = None
     try:
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
+                     DELETE IF EXISTS FROM FileToDisk; \
                      DELETE IF EXISTS FROM File ;\
                      DELETE IF EXISTS FROM Disk ;\
                      DELETE IF EXISTS FROM RAM ;\
-                     DELETE IF EXISTS FROM FileToDisk;\
                      COMMIT;')
     except Exception as e:
         print(e)
     finally:
         conn.close()
-
-
-"""DROP TABLE IF EXISTS RAM_and_Disks; """
-
 
 def dropTables():
     conn = None
@@ -143,10 +135,10 @@ def dropTables():
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
                      DROP TABLE IF EXISTS RAM_and_Disks;\
+                     DROP TABLE IF EXISTS FileToDisk;\
                      DROP TABLE IF EXISTS File CASCADE;\
                      DROP TABLE IF EXISTS Disk CASCADE;\
                      DROP TABLE IF EXISTS RAM CASCADE;\
-                     DROP TABLE IF EXISTS FileToDisk;\
                      COMMIT;')
     except Exception as e:
         print(e)
@@ -161,7 +153,7 @@ def addFile(file: File) -> Status:
         conn = Connector.DBConnector()
 
         query = sql.SQL("INSERT INTO File(id, type, disk_size_needed) VALUES({id}, {type}, {disk_size_needed})"). \
-            format(id=sql.Literal(file.getFileID()), type=sql.Literal(file.getType()), \
+            format(id=sql.Literal(file.getFileID()), type=sql.Literal(file.getType()),
                    disk_size_needed=sql.Literal(file.getSize()))
         rows_effected, _ = conn.execute(query)
         conn.commit()
@@ -531,7 +523,29 @@ def getFilesCanBeAddedToDisk(diskID: int) -> List[int]:
 
 
 def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:
-    return []
+    conn = None
+    res = []
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT file.id \
+                             FROM file, disk \
+                             WHERE disk.id = {did} AND disk.free_space >= file.disk_size_needed AND \
+                             (SELECT SUM(RAM.size) as sum_size \
+                             FROM RAM inner join ram_and_disks as rnd on RAM.id = rnd.ram_id \
+                             inner join disk on rnd.disk_id = disk.id  \
+                             WHERE disk.id = {did}) >= file.disk_size_needed\
+                             ORDER BY file.id DESC \
+                             FETCH FIRST 5 ROWS ONLY").format(did=sql.Literal(diskID))
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+        res = [id_tuple[0] for id_tuple in result.rows]
+    except Exception as e:
+        res = []
+        print(e)
+    finally:
+        conn.close()
+        return res
+
 
 
 def isCompanyExclusive(diskID: int) -> bool:

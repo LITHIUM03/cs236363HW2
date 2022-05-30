@@ -82,48 +82,52 @@ class Test(AbstractTest):
     def test_ram_and_disk(self) -> None:
         """def addRAMToDisk(ramID: int, diskID: int) -> Status"""
 
-        def f1():
-            """tests addRAMToDisk and removeRAMFromDisk"""
-            # add ram 2 to disk 2 should work
-            self.assertEqual(Status.OK, Solution.addRAM(RAM(2, "DELL", 10)), "Should work")
-            self.assertEqual(Status.OK, Solution.addRAM(RAM(3, "DELL", 10)), "Should work")
-            self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "ASUS", 2, 5, 20)), "Should work")
-            self.assertEqual(Status.OK, Solution.addRAMToDisk(2, 2), "Should work")
-            # add ram 3 to disk 140 should not work NOT_EXISTS
-            self.assertEqual(Status.NOT_EXISTS, Solution.addRAMToDisk(3, 140), "Should throw")
-            # add ram 142 to disk 2 should not work NOT_EXISTS
-            self.assertEqual(Status.NOT_EXISTS, Solution.addRAMToDisk(142, 2), "Should throw")
-            # add ram 2 to disk 2 should not work ALREADY_EXISTS
-            self.assertEqual(Status.ALREADY_EXISTS, Solution.addRAMToDisk(2, 2), "Should work")
-            # BY ##HERE## WE HAVE (2,2) in RAM_and_Disks
+        pass
 
-            # some removals of tuples that do not exist
-            self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(156, 2), "Should work")
-            self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(2, 156), "Should work")
-            self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(3, 2), "Should work")  # not part
+    def test_f1(self):
+        """tests addRAMToDisk and removeRAMFromDisk"""
+        # add ram 2 to disk 2 should work
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(2, "DELL", 10)), "Should work")
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(3, "DELL", 10)), "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "ASUS", 2, 5, 20)), "Should work")
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(2, 2), "Should work")
+        # add ram 3 to disk 140 should not work NOT_EXISTS
+        self.assertEqual(Status.NOT_EXISTS, Solution.addRAMToDisk(3, 140), "Should throw")
+        # add ram 142 to disk 2 should not work NOT_EXISTS
+        self.assertEqual(Status.NOT_EXISTS, Solution.addRAMToDisk(142, 2), "Should throw")
+        # add ram 2 to disk 2 should not work ALREADY_EXISTS
+        self.assertEqual(Status.ALREADY_EXISTS, Solution.addRAMToDisk(2, 2), "Should work")
+        # BY ##HERE## WE HAVE (2,2) in RAM_and_Disks
 
-            self.assertEqual(Status.OK, Solution.removeRAMFromDisk(2, 2), "Should work")
-            self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(2, 2), "Should work")
+        # some removals of tuples that do not exist
+        self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(156, 2), "Should work")
+        self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(2, 156), "Should work")
+        self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(3, 2), "Should work")  # not part
 
-        def f2():
-            """tests diskTotalRAM"""
-            # add ram only. check return == 0
-            self.assertEqual(Status.OK, Solution.addRAM(RAM(222, "DELL", 10)), "Should work")
-            self.assertEqual(0, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not found
+        self.assertEqual(Status.OK, Solution.removeRAMFromDisk(2, 2), "Should work")
+        self.assertEqual(Status.NOT_EXISTS, Solution.removeRAMFromDisk(2, 2), "Should work")
 
-            # add Disk . check return == 0
-            self.assertEqual(Status.OK, Solution.addDisk(Disk(25, "ASUS", 2, 5, 20)), "Should work")
-            self.assertEqual(0, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not assigned rams
+        pass
 
-            # assign ram to Disk . check return == 10
-            self.assertEqual(Status.OK, Solution.addRAMToDisk(222, 25), "Should work")
-            self.assertEqual(10, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not
-            # print(1234567890)
+    def test_f2(self):
+        """tests diskTotalRAM"""
+        # add ram only. check return == 0
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(222, "DELL", 10)), "Should work")
+        self.assertEqual(0, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not found
 
-            # add ram 30. assign ram to Disk 25 . check return == 20
-            self.assertEqual(Status.OK, Solution.addRAM(RAM(30, "DELL", 10)), "Should work")
-            self.assertEqual(Status.OK, Solution.addRAMToDisk(30, 25), "Should work")
-            self.assertEqual(20, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not
+        # add Disk . check return == 0
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(25, "ASUS", 2, 5, 20)), "Should work")
+        self.assertEqual(0, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not assigned rams
+
+        # assign ram to Disk . check return == 10
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(222, 25), "Should work")
+        self.assertEqual(10, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not
+        # print(1234567890)
+
+        # add ram 30. assign ram to Disk 25 . check return == 20
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(30, "DELL", 10)), "Should work")
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(30, 25), "Should work")
+        self.assertEqual(20, Solution.diskTotalRAM(25), "Should work")  # 0 due disk not
 
         # f1()
         # f2()
@@ -239,6 +243,47 @@ class Test(AbstractTest):
                          "DiskId not exists")
     pass
 
+    def test_get_file_can_be_added_ram(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(1, "WD", 30)),
+                         "Should work")
+        self.assertEqual([], Solution.getFilesCanBeAddedToDiskAndRAM(1),
+                         "Check return empty list when there is no files")
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(1, 1),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "ASUS", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "WD", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "WD", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "WD", 90)),
+                         "Should work")
+        self.assertEqual([4, 3, 1], Solution.getFilesCanBeAddedToDiskAndRAM(1),
+                         "Check descending order")
+        self.assertEqual(Status.OK, Solution.addFile(File(6, "WD", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(7, "WD", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(8, "WD", 25)),
+                         "Should work")
+        self.assertEqual([8, 7, 6, 4, 3], Solution.getFilesCanBeAddedToDisk(1),
+                         "Check return only 5 items list")
+        self.assertEqual([], Solution.getFilesCanBeAddedToDiskAndRAM(2),
+                         "DiskId not exists")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(2, "WD", 1)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(2, 2),
+                         "Should work")
+        self.assertEqual([], Solution.getFilesCanBeAddedToDiskAndRAM(2),
+                         "There is not enough place on the RAM")
+    pass
+
     def test_get_cost_for_type(self) -> None:
         self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 500, 20)),
                          "Should work")
@@ -272,5 +317,4 @@ class Test(AbstractTest):
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':
-    Solution.dropTables()
     unittest.main(verbosity=4, exit=False)
