@@ -22,13 +22,13 @@ def DeletediskORram(ID, table_name):
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     except DatabaseException.CHECK_VIOLATION as e:
         res = Status.NOT_EXISTS
-        print(e)
+        # print(e)
     except Exception as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     finally:
         conn.close()
         return res
@@ -92,6 +92,10 @@ def createTables():
                         CHECK (delta>=0),\
                         FOREIGN KEY (did) REFERENCES Disk(id) ON DELETE CASCADE,\
                         FOREIGN KEY (fid) REFERENCES File(id) ON DELETE CASCADE, PRIMARY KEY (did, fid));\
+                     CREATE TABLE IF NOT EXISTS RAM_and_Disks(ram_id INTEGER NOT NULL,disk_id INTEGER NOT NULL,\
+                             FOREIGN KEY(ram_id) REFERENCES RAM(id) ON DELETE CASCADE,FOREIGN KEY(disk_id)\
+                              REFERENCES Disk(id) ON DELETE CASCADE,  FOREIGN KEY(ram_id)\
+                              REFERENCES RAM(id) ON DELETE CASCADE, PRIMARY KEY(ram_id, disk_id));\
                      COMMIT;")
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
@@ -111,15 +115,18 @@ def createTables():
         conn.close()
 
 
+"""DELETE IF EXISTS FROM RAM_and_Disks;"""
+
+
 def clearTables():
     conn = None
     try:
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
+                     DELETE IF EXISTS FROM File ;\
+                     DELETE IF EXISTS FROM Disk ;\
+                     DELETE IF EXISTS FROM RAM ;\
                      DELETE IF EXISTS FROM FileToDisk;\
-                     DELETE IF EXISTS FROM File;\
-                     DELETE IF EXISTS FROM Disk;\
-                     DELETE IF EXISTS FROM RAM;\
                      COMMIT;')
     except Exception as e:
         print(e)
@@ -127,15 +134,19 @@ def clearTables():
         conn.close()
 
 
+"""DROP TABLE IF EXISTS RAM_and_Disks; """
+
+
 def dropTables():
     conn = None
     try:
         conn = Connector.DBConnector()
         conn.execute('BEGIN;\
+                     DROP TABLE IF EXISTS RAM_and_Disks;\
+                     DROP TABLE IF EXISTS File CASCADE;\
+                     DROP TABLE IF EXISTS Disk CASCADE;\
+                     DROP TABLE IF EXISTS RAM CASCADE;\
                      DROP TABLE IF EXISTS FileToDisk;\
-                     DROP TABLE IF EXISTS File;\
-                     DROP TABLE IF EXISTS Disk;\
-                     DROP TABLE IF EXISTS RAM;\
                      COMMIT;')
     except Exception as e:
         print(e)
@@ -157,16 +168,16 @@ def addFile(file: File) -> Status:
         res = Status.OK
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.CHECK_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.UNIQUE_VIOLATION as e:
         res = Status.ALREADY_EXISTS
-        print(e)
+        # print(e)
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
     except Exception as e:
@@ -191,10 +202,10 @@ def deleteFile(file: File) -> Status:
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     except Exception as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     finally:
         conn.close()
         return res
@@ -215,18 +226,18 @@ def addDisk(disk: Disk) -> Status:
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     except DatabaseException.CHECK_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.UNIQUE_VIOLATION as e:
         res = Status.ALREADY_EXISTS
     except Exception as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     finally:
         conn.close()
     return res
@@ -256,18 +267,18 @@ def addRAM(ram: RAM) -> Status:
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     except DatabaseException.CHECK_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
         res = Status.BAD_PARAMS
-        print(e)
+        # print(e)
     except DatabaseException.UNIQUE_VIOLATION as e:
         res = Status.ALREADY_EXISTS
     except Exception as e:
         res = Status.ERROR
-        print(e)
+        # print(e)
     finally:
         conn.close()
         return res
@@ -284,7 +295,37 @@ def deleteRAM(ramID: int) -> Status:
 
 
 def addDiskAndFile(disk: Disk, file: File) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+
+        add_disk_q = sql.SQL("INSERT INTO Disk(id, company, speed, free_space, cost)\
+         VALUES({id}, {company}, {speed}, {free_space}, {cost})").format(id=sql.Literal(disk.getDiskID()),
+                                                                         company=sql.Literal(disk.getCompany()),
+                                                                         speed=sql.Literal(disk.getSpeed()),
+                                                                         free_space=sql.Literal(disk.getFreeSpace()),
+                                                                         cost=sql.Literal(disk.getCost()))
+        add_file_q = sql.SQL("INSERT INTO File(id, type, disk_size_needed) VALUES({id}, {type}, {disk_size_needed})"). \
+            format(id=sql.Literal(file.getFileID()), type=sql.Literal(file.getType()), \
+                   disk_size_needed=sql.Literal(file.getSize()))
+
+        query = add_disk_q + sql.SQL("; \n") + add_file_q
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+        # print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        res = Status.ALREADY_EXISTS
+        conn.rollback()
+        # print(e)
+    except Exception as e:
+        res = Status.ERROR
+        # print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def addFileToDisk(file: File, diskID: int) -> Status:
@@ -346,11 +387,59 @@ def removeFileFromDisk(file: File, diskID: int) -> Status:
 
 
 def addRAMToDisk(ramID: int, diskID: int) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("INSERT INTO RAM_and_Disks(ram_id,disk_id) VALUES({_ramID}, {_diskID})").format(
+            _ramID=sql.Literal(ramID),
+            _diskID=sql.Literal(diskID))
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+        # print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        res = Status.NOT_EXISTS
+        # print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        res = Status.ALREADY_EXISTS
+    except Exception as e:
+        res = Status.ERROR
+        # print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def removeRAMFromDisk(ramID: int, diskID: int) -> Status:
-    return Status.OK
+    conn = None
+    res = Status.OK
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("DELETE FROM RAM_and_Disks WHERE ram_id = {_ramID} AND disk_id \
+        = {_diskID}").format(
+            _ramID=sql.Literal(ramID),
+            _diskID=sql.Literal(diskID))
+        rows_effected, _ = conn.execute(query)
+        conn.commit()
+
+        # print("inside ", __name__, " rows affected = ", rows_effected)
+
+        # if we are here, either 1 was deleted or none were deleted
+        if rows_effected == 0:
+            res = Status.NOT_EXISTS
+        else:
+            assert (rows_effected == 1)
+    except DatabaseException.ConnectionInvalid as e:
+        res = Status.ERROR
+        # print(e)
+    except Exception as e:
+        res = Status.ERROR
+        # print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def averageFileSizeOnDisk(diskID: int) -> float:
@@ -376,7 +465,28 @@ def averageFileSizeOnDisk(diskID: int) -> float:
 
 
 def diskTotalRAM(diskID: int) -> int:
-    return 0
+    conn = None
+    res = None
+    try:
+        conn = Connector.DBConnector()
+        q2 = "SELECT SUM(size) \
+        FROM RAM_and_Disks INNER JOIN RAM \
+        ON RAM_and_Disks.ram_id = RAM.id \
+        WHERE RAM_and_Disks.disk_id = {_diskID}"
+        query = sql.SQL(q2).format(_diskID=sql.Literal(diskID))
+        rows_effected, res = conn.execute(query)
+        conn.commit()
+        if res.rows[0][0] is None:
+            res = 0
+        else:
+            res = res.rows[0][0]
+    # todo disk exists. maybe check rows affected to achieve this.
+    except Exception as e:
+        # print(e)
+        res = -1
+    finally:
+        conn.close()
+        return res
 
 
 def getCostForType(type: str) -> int:
@@ -425,7 +535,29 @@ def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:
 
 
 def isCompanyExclusive(diskID: int) -> bool:
-    return True
+    # conn = None
+    # res = False
+    # try:
+    #     conn = Connector.DBConnector()
+    #     q2 = "SELECT SUM(size) \
+    #         FROM RAM_and_Disks INNER JOIN RAM \
+    #         ON RAM_and_Disks.ram_id = RAM.id \
+    #         WHERE RAM_and_Disks.disk_id = {_diskID}"
+    #     query = sql.SQL(q2).format(_diskID=sql.Literal(diskID))
+    #     rows_effected, res = conn.execute(query)
+    #     conn.commit()
+    #     if res.rows[0][0] is None:
+    #         res = 0
+    #     else:
+    #         res = res.rows[0][0]
+    # # todo disk exists. maybe check rows affected to achieve this.
+    # except Exception as e:
+    #     # print(e)
+    #     res = -1
+    # finally:
+    #     conn.close()
+    #     return res
+    pass
 
 
 def getConflictingDisks() -> List[int]:
