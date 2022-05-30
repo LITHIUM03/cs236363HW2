@@ -290,12 +290,6 @@ def addDiskAndFile(disk: Disk, file: File) -> Status:
 def addFileToDisk(file: File, diskID: int) -> Status:
     conn = None
     res = Status.OK
-    """insert into filetodisk(file,disk) \
-    (select file.id , disk.id, disk.free_space - file.size as delta from file , disk where delta >= 0 and disk.id = diskID and file.id={fid}) 
-    """
-    """
-    
-    """
     try:
         conn = Connector.DBConnector()
         query = sql.SQL("BEGIN; \
@@ -390,7 +384,24 @@ def getCostForType(type: str) -> int:
 
 
 def getFilesCanBeAddedToDisk(diskID: int) -> List[int]:
-    return []
+    conn = None
+    res = []
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT file.id \
+                         FROM file, disk \
+                         WHERE disk.id = {did} AND disk.free_space >= file.disk_size_needed \
+                         ORDER BY file.id DESC \
+                         FETCH FIRST 5 ROWS ONLY").format(did=sql.Literal(diskID))
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+        res = [id_tuple[0] for id_tuple in result.rows]
+    except Exception as e:
+        res = []
+        print(e)
+    finally:
+        conn.close()
+        return res
 
 
 def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:

@@ -128,6 +128,35 @@ class Test(AbstractTest):
                          "Division by zero")
     pass
 
+    def test_avg_file_size_on_disk(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 2, 50, 20)),
+                         "Should work")
+        self.assertEqual([], Solution.getFilesCanBeAddedToDisk(1),
+                         "Check return empty list when there is no files")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "ASUS", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "WD", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "WD", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "WD", 90)),
+                         "Should work")
+        self.assertEqual([4, 3, 1], Solution.getFilesCanBeAddedToDisk(1),
+                         "Check descending order")
+        self.assertEqual(Status.OK, Solution.addFile(File(6, "WD", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(7, "WD", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(8, "WD", 25)),
+                         "Should work")
+        self.assertEqual([8, 7, 6, 4, 3], Solution.getFilesCanBeAddedToDisk(1),
+                         "Check return only 5 items list")
+        self.assertEqual([], Solution.getFilesCanBeAddedToDisk(2),
+                         "DiskId not exists")
+    pass
+
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':
     Solution.dropTables()
