@@ -550,15 +550,15 @@ def isCompanyExclusive(diskID: int) -> bool:
     res = True
     try:
         conn = Connector.DBConnector()
-        q2 = "SELECT count(*) \
+        q2 = "Select count(*) \
+              From disk \
+              Where (SELECT count(*) \
               FROM Disk INNER JOIN RAM_and_Disks ON Disk.id = RAM_and_Disks.disk_id INNER JOIN RAM on  RAM_and_Disks.RAM_id = RAM.id \
-                 WHERE disk.id = {_diskID} AND disk.company != RAM.company "
+              WHERE disk.id = {_diskID} AND disk.company != RAM.company) = 0 AND disk.id = {_diskID}"
         query = sql.SQL(q2).format(_diskID=sql.Literal(diskID))
-        rows_effected, res = conn.execute(query)
+        rows_effected, result = conn.execute(query)
         conn.commit()
-        if res.rows[0][0] == 0:
-            res = True
-        else:
+        if result.rows[0][0] == 0:
             res = False
     # # todo disk exists. maybe check rows affected to achieve this.
     except Exception as e:
