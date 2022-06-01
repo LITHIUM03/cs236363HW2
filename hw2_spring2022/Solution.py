@@ -510,7 +510,7 @@ def getFilesCanBeAddedToDisk(diskID: int) -> List[int]:
                          FROM file, disk \
                          WHERE disk.id = {did} AND disk.free_space >= file.disk_size_needed \
                          ORDER BY file.id DESC \
-                         FETCH FIRST 5 ROWS ONLY").format(did=sql.Literal(diskID))
+                         LIMIT 5").format(did=sql.Literal(diskID))
         rows_effected, result = conn.execute(query)
         conn.commit()
         res = [id_tuple[0] for id_tuple in result.rows]
@@ -535,7 +535,7 @@ def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:
                              inner join disk on rnd.disk_id = disk.id  \
                              WHERE disk.id = {did}) >= file.disk_size_needed\
                              ORDER BY file.id DESC \
-                             FETCH FIRST 5 ROWS ONLY").format(did=sql.Literal(diskID))
+                             LIMIT 5").format(did=sql.Literal(diskID))
         rows_effected, result = conn.execute(query)
         conn.commit()
         res = [id_tuple[0] for id_tuple in result.rows]
@@ -583,7 +583,7 @@ def getConflictingDisks() -> List[int]:
                              FROM fileToDisk as fdt1 inner join fileToDisk as fdt2 on fdt1.fid = fdt2.fid\
                              WHERE fdt1.did != fdt2.did \
                              ORDER BY fdt1.did ASC \
-                             FETCH FIRST 5 ROWS ONLY")
+                             LIMIT 5")
         rows_effected, result = conn.execute(query)
         conn.commit()
         res = [id_tuple[0] for id_tuple in result.rows]
@@ -597,8 +597,53 @@ def getConflictingDisks() -> List[int]:
 
 
 def mostAvailableDisks() -> List[int]:
+    conn = None
+    res = []
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT disk.id, COUNT(file.id) as num_of_files \
+                             FROM disk, file \
+                             WHERE disk.free_space >= file.disk_size_needed \
+                             GROUP BY disk.id\
+                             ORDER BY num_of_files DESC, disk.speed DESC, disk.id ASC  \
+                             LIMIT 5")
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+        res = [id_tuple[0] for id_tuple in result.rows]
+    except Exception as e:
+        res = []
+        print(e)
+    finally:
+        conn.close()
+        return res
     return []
 
-
 def getCloseFiles(fileID: int) -> List[int]:
+    conn = None
+    res = []
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT fid, (other_file.count / (SELECT COUNT(did) \
+                                                          FROM fileToDisk \
+                                                          WHERE fid = {fid} \
+                                                          GROUP BY fid)) as percentage \
+                         FROM (SELECT CAST(COUNT(fdt1.fid) as float) as count, fdt2.fid \
+                               FROM fileToDisk as fdt1 INNER JOIN fileToDisk as fdt2 ON fdt1.did = fdt2.did \
+                               WHERE fdt1.fid != fdt2.fid AND fdt1.fid = {fid} \
+                               GROUP BY fdt2.fid) as other_file \
+                         WHERE (other_file.count / (SELECT COUNT(did) \
+                                                  FROM fileToDisk \
+                                                  WHERE fid = {fid} \
+                                                  GROUP BY fid)) >=0.5 \
+                         ORDER BY percentage DESC \
+                         LIMIT 10").format(fid=sql.Literal(fileID))
+        rows_effected, result = conn.execute(query)
+        conn.commit()
+        res = [id_tuple[0] for id_tuple in result.rows]
+    except Exception as e:
+        res = []
+        print(e)
+    finally:
+        conn.close()
+        return res
     return []

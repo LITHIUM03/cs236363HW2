@@ -352,6 +352,82 @@ class Test(AbstractTest):
                         "Check file id 3 in both disks 1 and 2, and file id 2 in both disks 1 and 3")
     pass
 
+    def test_most_availiable(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 100, 40, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "WD", 10, 1000, 80)),
+                         "Should work")
+        # self.assertEqual([1, 2], Solution.mostAvailableDisks(),
+        #                  "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "PDF", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "JPG", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "PDF", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "SVG", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "PDF", 90)),
+                         "Should work")
+        self.assertEqual([2, 1], Solution.mostAvailableDisks(),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(3, "WD", 9, 1000, 80)),
+                         "Should work")
+        self.assertEqual([2, 3, 1], Solution.mostAvailableDisks(),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(4, "WD", 9, 1000, 80)),
+                         "Should work")
+        self.assertEqual([2, 3, 4, 1], Solution.mostAvailableDisks(),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(5, "DELL", 100, 40, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(6, "WD", 10, 1000, 80)),
+                         "Should work")
+        self.assertEqual([2, 6, 3, 4, 1], Solution.mostAvailableDisks(),
+                         "Check no conflicts")
+    pass
+
+    def test_get_close_file(self) -> None:
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(1, "DELL", 100, 1000, 20)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "WD", 10, 1000, 80)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(3, "WD", 10, 1000, 80)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(1, "PDF", 11)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(2, "JPG", 55)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(3, "PDF", 18)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(4, "SVG", 22)),
+                         "Should work")
+        self.assertEqual(Status.OK, Solution.addFile(File(5, "PDF", 90)),
+                         "Should work")
+        self.assertEqual([4, 2], Solution.getCloseFiles(1),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 1),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 2),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 3),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "JPG", 55), 1),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(2, "JPG", 55), 2),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(3, "PDF", 18), 1),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(4, "SVG", 22), 1),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(4, "SVG", 22), 2),
+                         "Check no conflicts")
+        self.assertEqual(Status.OK, Solution.addFileToDisk(File(4, "SVG", 22), 3),
+                         "Check no conflicts")
+        self.assertEqual([4, 2], Solution.getCloseFiles(1),
+                         "Check no conflicts")
+    pass
+
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':
     unittest.main(verbosity=4, exit=False)
