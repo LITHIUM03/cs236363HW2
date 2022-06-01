@@ -62,7 +62,7 @@ def get(ID, table_name):
             if rows_effected:
                 assert (rows_effected == 1)
                 ramID, size, company = result.rows[0]
-                result = RAM(ramID, size, company)
+                result = RAM(ramID, company, size)
 
             else:
                 result = RAM.badRAM()
@@ -84,12 +84,11 @@ def createTables():
                      CREATE TABLE IF NOT EXISTS File(id INTEGER PRIMARY KEY NOT NULL, \
                         type TEXT NOT NULL, disk_size_needed INTEGER NOT NULL,CHECK (id>=1));\
                      CREATE TABLE IF NOT EXISTS Disk(id INTEGER PRIMARY KEY NOT NULL, company TEXT NOT NULL,\
-                        speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL,CHECK (id>=1));\
+                        speed INTEGER NOT NULL, free_space INTEGER NOT NULL, cost INTEGER NOT NULL,CHECK (id>=1), CHECK(free_space>=0));\
                      CREATE TABLE IF NOT EXISTS RAM(id INTEGER PRIMARY KEY NOT NULL,size INTEGER NOT NULL, \
                         company TEXT NOT NULL,CHECK (id>=1));\
                      CREATE TABLE IF NOT EXISTS FileToDisk(did INTEGER NOT NULL,\
-                        fid INTEGER NOT NULL, delta INTEGER NOT NULL,\
-                        CHECK (delta>=0),\
+                        fid INTEGER NOT NULL,\
                         FOREIGN KEY (did) REFERENCES Disk(id) ON DELETE CASCADE,\
                         FOREIGN KEY (fid) REFERENCES File(id) ON DELETE CASCADE, PRIMARY KEY (did, fid));\
                      CREATE TABLE IF NOT EXISTS RAM_and_Disks(ram_id INTEGER NOT NULL,disk_id INTEGER NOT NULL,\
@@ -326,10 +325,10 @@ def addFileToDisk(file: File, diskID: int) -> Status:
     try:
         conn = Connector.DBConnector()
         query = sql.SQL("BEGIN; \
+                                INSERT INTO FileToDisk(did, fid) \
+                                VALUES ({did}, {fid}); \
                                 UPDATE Disk SET free_space = free_space - {fsize} WHERE id={did}; \
-                                INSERT INTO FileToDisk(did, fid, delta) \
-                                VALUES ({did}, {fid}, (SELECT free_space FROM Disk WHERE id={did}));\
-                        END;").format(did=sql.Literal(diskID), fid=sql.Literal(file.getFileID()), fsize=sql.Literal(file.getSize()))
+                END;").format(did=sql.Literal(diskID), fid=sql.Literal(file.getFileID()), fsize=sql.Literal(file.getSize()))
         rows_effected, result = conn.execute(query)
         conn.commit()
     except DatabaseException.UNIQUE_VIOLATION as e:
@@ -355,7 +354,6 @@ def addFileToDisk(file: File, diskID: int) -> Status:
     finally:
         conn.close()
         return res
-
 
 def removeFileFromDisk(file: File, diskID: int) -> Status:
     conn = None
@@ -534,7 +532,7 @@ def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:
                              FROM RAM inner join ram_and_disks as rnd on RAM.id = rnd.ram_id \
                              inner join disk on rnd.disk_id = disk.id  \
                              WHERE disk.id = {did}) >= file.disk_size_needed\
-                             ORDER BY file.id DESC \
+                             ORDER BY file.id ASC \
                              LIMIT 5").format(did=sql.Literal(diskID))
         rows_effected, result = conn.execute(query)
         conn.commit()
@@ -547,30 +545,28 @@ def getFilesCanBeAddedToDiskAndRAM(diskID: int) -> List[int]:
         return res
 
 
-
 def isCompanyExclusive(diskID: int) -> bool:
-    # conn = None
-    # res = False
-    # try:
-    #     conn = Connector.DBConnector()
-    #     q2 = "SELECT SUM(size) \
-    #         FROM RAM_and_Disks INNER JOIN RAM \
-    #         ON RAM_and_Disks.ram_id = RAM.id \
-    #         WHERE RAM_and_Disks.disk_id = {_diskID}"
-    #     query = sql.SQL(q2).format(_diskID=sql.Literal(diskID))
-    #     rows_effected, res = conn.execute(query)
-    #     conn.commit()
-    #     if res.rows[0][0] is None:
-    #         res = 0
-    #     else:
-    #         res = res.rows[0][0]
+    conn = None
+    res = True
+    try:
+        conn = Connector.DBConnector()
+        q2 = "SELECT count(*) \
+              FROM Disk INNER JOIN RAM_and_Disks ON Disk.id = RAM_and_Disks.disk_id INNER JOIN RAM on  RAM_and_Disks.RAM_id = RAM.id \
+                 WHERE disk.id = {_diskID} AND disk.company != RAM.company "
+        query = sql.SQL(q2).format(_diskID=sql.Literal(diskID))
+        rows_effected, res = conn.execute(query)
+        conn.commit()
+        if res.rows[0][0] == 0:
+            res = True
+        else:
+            res = False
     # # todo disk exists. maybe check rows affected to achieve this.
-    # except Exception as e:
-    #     # print(e)
-    #     res = -1
-    # finally:
-    #     conn.close()
-    #     return res
+    except Exception as e:
+        # print(e)
+        res = False
+    finally:
+        conn.close()
+        return res
     pass
 
 
@@ -582,8 +578,7 @@ def getConflictingDisks() -> List[int]:
         query = sql.SQL("SELECT DISTINCT fdt1.did \
                              FROM fileToDisk as fdt1 inner join fileToDisk as fdt2 on fdt1.fid = fdt2.fid\
                              WHERE fdt1.did != fdt2.did \
-                             ORDER BY fdt1.did ASC \
-                             LIMIT 5")
+                             ORDER BY fdt1.did ASC")
         rows_effected, result = conn.execute(query)
         conn.commit()
         res = [id_tuple[0] for id_tuple in result.rows]
@@ -601,12 +596,10 @@ def mostAvailableDisks() -> List[int]:
     res = []
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("SELECT disk.id, COUNT(file.id) as num_of_files \
-                             FROM disk, file \
-                             WHERE disk.free_space >= file.disk_size_needed \
-                             GROUP BY disk.id\
-                             ORDER BY num_of_files DESC, disk.speed DESC, disk.id ASC  \
-                             LIMIT 5")
+        query = sql.SQL("SELECT disk.id, disk.free_space, (SELECT Count(*) FROM file WHERE file.disk_size_needed <= disk.free_space) as num_of_files \
+                         FROM disk \
+                         ORDER BY num_of_files DESC, disk.speed DESC, disk.id ASC \
+                         LIMIT 5")
         rows_effected, result = conn.execute(query)
         conn.commit()
         res = [id_tuple[0] for id_tuple in result.rows]
@@ -618,24 +611,21 @@ def mostAvailableDisks() -> List[int]:
         return res
     return []
 
+
+
+
 def getCloseFiles(fileID: int) -> List[int]:
     conn = None
     res = []
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("SELECT fid, (other_file.count / (SELECT COUNT(did) \
-                                                          FROM fileToDisk \
-                                                          WHERE fid = {fid} \
-                                                          GROUP BY fid)) as percentage \
-                         FROM (SELECT CAST(COUNT(fdt1.fid) as float) as count, fdt2.fid \
-                               FROM fileToDisk as fdt1 INNER JOIN fileToDisk as fdt2 ON fdt1.did = fdt2.did \
-                               WHERE fdt1.fid != fdt2.fid AND fdt1.fid = {fid} \
-                               GROUP BY fdt2.fid) as other_file \
-                         WHERE (other_file.count / (SELECT COUNT(did) \
-                                                  FROM fileToDisk \
-                                                  WHERE fid = {fid} \
-                                                  GROUP BY fid)) >=0.5 \
-                         ORDER BY percentage DESC \
+        query = sql.SQL("SELECT file.id \
+                         FROM file \
+                         WHERE file.id != {fid} and (SELECT COUNT(*) FROM fileToDisk AS FD1 \
+                         INNER JOIN fileToDisk AS FD2 ON FD1.did = FD2.did \
+                         WHERE file.id = FD1.fid and FD1.fid != {fid} \
+                         and FD2.fid = {fid}) >= (SELECT CAST(COUNT(*) as float) FROM fileToDisk WHERE fileToDisk.fid = {fid})/2 \
+                         ORDER By file.id ASC \
                          LIMIT 10").format(fid=sql.Literal(fileID))
         rows_effected, result = conn.execute(query)
         conn.commit()

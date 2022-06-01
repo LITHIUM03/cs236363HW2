@@ -132,22 +132,23 @@ class Test(AbstractTest):
         # f1()
         # f2()
         pass
-    #
-    # def is_comp_exclusive(self):
-    #     self.assertEqual(Status.OK, Solution.addDisk(Disk(132, "ASUS", 2, 5, 20)), "Should work")
-    #     self.assertEqual(Status.OK, Solution.addRAM(RAM(1321, "ASUS", 10)), "Should work")
-    #
-    #     # no rams added yet. beofen rek
-    #     self.assertEqual(True, Solution.isCompanyExclusive(132), "Should work")
-    #
-    #     # 1 ram add. company matches.
-    #     self.assertEqual(Status.OK, Solution.addRAMToDisk(1321, 132), "Should work")
-    #     self.assertEqual(True, Solution.isCompanyExclusive(132), "Should work")
-    #
-    #     self.assertEqual(Status.OK, Solution.addRAM(RAM(1322, "rororo", 10)), "Should work")
-    #     self.assertEqual(False, Solution.isCompanyExclusive(132), "Should work")
 
-        # pass
+    def test_is_comp_exclusive(self):
+        self.assertEqual(Status.OK, Solution.addDisk(Disk(132, "ASUS", 2, 5, 20)), "Should work")
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(1321, "ASUS", 10)), "Should work")
+
+        # no rams added yet. beofen rek
+        self.assertEqual(True, Solution.isCompanyExclusive(132), "Should work")
+
+        # 1 ram add. company matches.
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(1321, 132), "Should work")
+        self.assertEqual(True, Solution.isCompanyExclusive(132), "Should work")
+
+        self.assertEqual(Status.OK, Solution.addRAM(RAM(1322, "rororo", 10)), "Should work")
+        self.assertEqual(Status.OK, Solution.addRAMToDisk(1322, 132), "Should work")
+        self.assertEqual(False, Solution.isCompanyExclusive(132), "Should work")
+
+        pass
 
     def test_add_file_to_disk(self) -> None:
         self.assertEqual(Status.OK, Solution.addFile(File(1, "DELL", 11)),
@@ -357,8 +358,8 @@ class Test(AbstractTest):
                          "Should work")
         self.assertEqual(Status.OK, Solution.addDisk(Disk(2, "WD", 10, 1000, 80)),
                          "Should work")
-        # self.assertEqual([1, 2], Solution.mostAvailableDisks(),
-        #                  "Check no conflicts")
+        self.assertEqual([1, 2], Solution.mostAvailableDisks(),
+                         "Check no conflicts")
         self.assertEqual(Status.OK, Solution.addFile(File(1, "PDF", 11)),
                          "Should work")
         self.assertEqual(Status.OK, Solution.addFile(File(2, "JPG", 55)),
@@ -404,7 +405,7 @@ class Test(AbstractTest):
                          "Should work")
         self.assertEqual(Status.OK, Solution.addFile(File(5, "PDF", 90)),
                          "Should work")
-        self.assertEqual([4, 2], Solution.getCloseFiles(1),
+        self.assertEqual([2, 3, 4, 5], Solution.getCloseFiles(1),
                          "Check no conflicts")
         self.assertEqual(Status.OK, Solution.addFileToDisk(File(1, "PDF", 11), 1),
                          "Check no conflicts")
@@ -424,7 +425,7 @@ class Test(AbstractTest):
                          "Check no conflicts")
         self.assertEqual(Status.OK, Solution.addFileToDisk(File(4, "SVG", 22), 3),
                          "Check no conflicts")
-        self.assertEqual([4, 2], Solution.getCloseFiles(1),
+        self.assertEqual([2, 4], Solution.getCloseFiles(1),
                          "Check no conflicts")
     pass
 
